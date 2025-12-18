@@ -4,7 +4,7 @@ import ReactMarkdown from "react-markdown"
 
 export default function ChatApp() {
   const API_BASE_URL = import.meta.env.BASE_API
-  console.log("API_BASE_URL", API_BASE_URL)
+  //console.log("API_BASE_URL", API_BASE_URL)
   const [chatId, setChatId] = useState(Date.now().toString())
   const [messages, setMessages] = useState([])
   const [input, setInput] = useState("")
