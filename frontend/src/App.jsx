@@ -9,6 +9,7 @@ export default function ChatApp() {
   const [messages, setMessages] = useState([])
   const [input, setInput] = useState("")
   const [loading, setLoading] = useState(false)
+  const [isUploading, setIsUploading] = useState(false)
   const [uploadedFile, setUploadedFile] = useState(null)
   const [previewUrl, setPreviewUrl] = useState(null)
 
@@ -35,7 +36,7 @@ export default function ChatApp() {
     formData.append("chatId", chatId)
 
     try {
-      setLoading(true)
+      setIsUploading(true)
       await axios.post(`${API_BASE_URL}/api/upload`, formData, {
         headers: { "Content-Type": "multipart/form-data" },
       })
@@ -46,7 +47,7 @@ export default function ChatApp() {
     } catch (error) {
       console.error("Upload failed", error)
     } finally {
-      setLoading(false)
+      setIsUploading(false)
     }
   }
 
@@ -244,13 +245,13 @@ export default function ChatApp() {
                     sendMessage()
                   }
                 }}
-                disabled={loading}
+                disabled={loading || isUploading}
                 style={{ minHeight: "40px", maxHeight: "200px" }}
               />
 
               <button
                 onClick={sendMessage}
-                disabled={loading || !input.trim()}
+                disabled={loading || isUploading || !input.trim()}
                 className={`
                   px-4 py-2 border cursor-pointer transition-all duration-200 text-xs font-medium rounded
                   ${
