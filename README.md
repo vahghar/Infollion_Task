@@ -1,4 +1,4 @@
-# Chatbot
+# Chatbot (https://infollion-task.vercel.app/)
 
 A web-based chatbot application that allows users to interact with Google’s Gemini API.  
 The project connects a Node.js backend with a frontend UI to enable real-time AI-powered conversations.
