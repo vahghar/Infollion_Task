@@ -3,11 +3,14 @@ import axios from "axios"
 import ReactMarkdown from "react-markdown"
 
 export default function ChatApp() {
+  const API_BASE_URL = import.meta.env.BASE_API
+  console.log("API_BASE_URL", API_BASE_URL)
   const [chatId, setChatId] = useState(Date.now().toString())
   const [messages, setMessages] = useState([])
   const [input, setInput] = useState("")
   const [loading, setLoading] = useState(false)
   const [uploadedFile, setUploadedFile] = useState(null)
+  const [previewUrl, setPreviewUrl] = useState(null)
 
   const chatEndRef = useRef(null)
 
@@ -20,22 +23,25 @@ export default function ChatApp() {
     const file = e.target.files[0]
     if (!file) return
 
+    if (file.type.startsWith("image/")) {
+      const url = URL.createObjectURL(file)
+      setPreviewUrl(url)
+    } else {
+      setPreviewUrl(null)
+    }
+
     const formData = new FormData()
     formData.append("file", file)
     formData.append("chatId", chatId)
 
     try {
       setLoading(true)
-      await axios.post("http://localhost:3000/api/upload", formData, {
+      await axios.post(`${API_BASE_URL}/api/upload`, formData, {
         headers: { "Content-Type": "multipart/form-data" },
       })
       setUploadedFile(file.name)
       setMessages((prev) => [
         ...prev,
-        {
-          sender: "system",
-          text: `> FILE_ATTACHED: ${file.name}`,
-        },
       ])
     } catch (error) {
       console.error("Upload failed", error)
@@ -48,11 +54,13 @@ export default function ChatApp() {
     if (!input.trim()) return
     const userMessage = input
     setInput("")
+    setPreviewUrl(null)
+    setUploadedFile(null)
     setMessages((prev) => [...prev, { sender: "user", text: userMessage }])
     setLoading(true)
 
     try {
-      const response = await axios.post("http://localhost:3000/api/chat", {
+      const response = await axios.post(`${API_BASE_URL}/api/chat`, {
         chatId,
         message: userMessage,
       })
@@ -65,22 +73,20 @@ export default function ChatApp() {
   }
 
   const resetChat = async () => {
-    await axios.post("http://localhost:3000/api/reset", { chatId })
+    await axios.post(`${API_BASE_URL}/api/reset`, { chatId })
     setChatId(Date.now().toString())
     setMessages([])
     setUploadedFile(null)
+    setPreviewUrl(null)
   }
 
   return (
     <div className="flex h-screen bg-[#1a1f1a] text-[#8fb89c] selection:bg-[#5a7a5f] selection:text-white">
-      {/* Sidebar */}
       <div className="hidden md:flex w-64 flex-col p-6 border-r border-[#3a4a3a] sticky top-0 h-screen bg-[#1f241f]">
         <div className="mb-8">
-          {/* Pixelated Logo */}
           <div className="flex items-center gap-3">
             <div className="relative w-10 h-10" style={{ imageRendering: "pixelated" }}>
               <div className="absolute inset-0 grid grid-cols-8 grid-rows-8 gap-[1px]">
-                {/* Pixelated icon pattern */}
                 {[
                   0, 0, 1, 1, 1, 1, 0, 0, 0, 1, 1, 1, 1, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0,
                   1, 1, 1, 1, 0, 1, 1, 0, 1, 0, 0, 1, 0, 1, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 1, 1, 1, 1, 0, 0,
@@ -93,20 +99,16 @@ export default function ChatApp() {
                 ))}
               </div>
             </div>
-            <h1 className="text-lg font-semibold text-[#8fb89c] tracking-wide">GEMINI</h1>
+            <h1 className="text-lg font-semibold text-[#8fb89c] tracking-wide">Chattingo</h1>
           </div>
         </div>
 
         <button
           onClick={resetChat}
-          className="w-full px-4 py-3 bg-transparent border border-[#3a4a3a] text-[#8fb89c] hover:bg-[#2a342a] hover:border-[#5a7a5f] transition-all duration-200 text-sm font-medium tracking-wide rounded"
+          className="w-full cursor-pointer px-4 py-3 bg-transparent border border-[#3a4a3a] text-[#8fb89c] hover:bg-[#2a342a] hover:border-[#5a7a5f] transition-all duration-200 text-sm font-medium tracking-wide rounded"
         >
           + New Chat
         </button>
-
-        <div className="mt-auto">
-          <div className="text-xs text-[#4a5a4a] text-center">Powered by Gemini</div>
-        </div>
       </div>
 
       {/* Main Chat Area */}
@@ -190,10 +192,20 @@ export default function ChatApp() {
           <div className="max-w-4xl mx-auto relative bg-[#1f241f] border border-[#3a4a3a] focus-within:border-[#5a7a5f] transition-all overflow-hidden rounded-lg">
             {uploadedFile && (
               <div className="absolute top-0 left-0 right-0 bg-[#2a342a] px-4 py-2 flex items-center justify-between border-b border-[#3a4a3a]">
-                <span className="text-xs text-[#8fb89c] font-medium flex items-center gap-2">{uploadedFile}</span>
+                <div className="flex items-center gap-3">
+                  {previewUrl && (
+                    <div className="relative w-8 h-8 rounded overflow-hidden border border-[#3a4a3a]">
+                      <img src={previewUrl} alt="Preview" className="w-full h-full object-cover" />
+                    </div>
+                  )}
+                  <span className="text-xs text-[#8fb89c] font-medium flex items-center gap-2">{uploadedFile}</span>
+                </div>
                 <button
-                  onClick={() => setUploadedFile(null)}
-                  className="text-[#8fb89c] hover:text-[#b5d4be] text-xs font-medium"
+                  onClick={() => {
+                    setUploadedFile(null)
+                    setPreviewUrl(null)
+                  }}
+                  className="cursor-pointer text-[#8fb89c] hover:text-[#b5d4be] text-xs font-medium"
                 >
                   ✕
                 </button>
@@ -240,7 +252,7 @@ export default function ChatApp() {
                 onClick={sendMessage}
                 disabled={loading || !input.trim()}
                 className={`
-                  px-4 py-2 border transition-all duration-200 text-xs font-medium rounded
+                  px-4 py-2 border cursor-pointer transition-all duration-200 text-xs font-medium rounded
                   ${
                     input.trim()
                       ? "bg-[#3a5a3f] text-[#b5d4be] border-[#4a6a4f] hover:bg-[#4a6a4f]"
